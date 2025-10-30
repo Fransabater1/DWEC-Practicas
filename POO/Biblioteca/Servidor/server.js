@@ -5,6 +5,7 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.get("/libros", async (req, res) => {
   try {
@@ -51,8 +52,8 @@ app.get("/peliculas/:id", async (req, res) => {
     const [rows] = await con.query(
       `
       SELECT r.id_recurso, r.titulo, r.disponibles, p.director, p.genero
-        FROM recursos r 
-        JOIN peliculas p ON r.id_recurso = p.id_pelicula where p.id_peliculas = ?`,
+        FROM recursos r
+        JOIN peliculas p ON r.id_recurso = p.id_pelicula WHERE p.id_pelicula = ?`,
       [id]
     );
     if (rows.length === 0) {
@@ -82,8 +83,8 @@ app.get("/revistas/:id", async (req, res) => {
     const [rows] = await con.query(
     `
     SELECT r.id_recurso, r.titulo, r.disponibles, re.fecha_publicacion
-    FROM recursos r 
-    JOIN revistas re ON r.id_recurso = re.id_revista where re.revista = ?`,
+    FROM recursos r
+    JOIN revistas re ON r.id_recurso = re.id_revista WHERE re.id_revista = ?`,
     [id]
     );
     if (rows.length === 0) {
@@ -188,15 +189,20 @@ app.get("/prestamos/:id/:socio/:recurso", async (req, res) => {
 });
 
 app.post("/socio", async (req, res) => {
-  try{
+  let connection;
+  try {
+    connection = await con.getConnection();
     const { nombre, dni } = req.body;
     // comprobem si algun camp demanat esta buit
-    if(!nombre || !dni){
+    if (!nombre || !dni) {
       const error = new Error("Faltan datos");
       error.status = 400;
       throw error;
     }
-    const [insertPersona] = await con.query(
+
+    await connection.beginTransaction();
+
+    const [insertPersona] = await connection.query(
       "insert into personas (nombre, dni, tipo) values (? ,? ,'socio')",
       [nombre, dni]
     );
@@ -204,39 +210,59 @@ app.post("/socio", async (req, res) => {
     const nuevoId = insertPersona.insertId;
 
     // si no sa ha afectat ninguna fila tira error
-    if(insertPersona.affectedRows === 0 || !nuevoId){
+    if (insertPersona.affectedRows === 0 || !nuevoId) {
       const error = new Error("No es posible insertar la persona");
-      error.status(500);
+      error.status = 500;
       throw error;
     }
 
-    const [insertSocio] = await con.query(
-      "insert into socios (id_persona) values (?)",[nuevoId]
+    const [insertSocio] = await connection.query(
+      "insert into socios (id_persona) values (?)",
+      [nuevoId]
     );
 
-    if(insertSocio.affectedRows === 0 ){
-      const error = new Error("No es posible insertar en la tabla socios pero en Persona si");
-      error.status(500);
+    if (insertSocio.affectedRows === 0) {
+      const error = new Error(
+        "No es posible insertar en la tabla socios pero en Persona si"
+      );
+      error.status = 500;
       throw error;
     }
+
+    await connection.commit();
     // insert fet
-    res.status(201).json({message: "Socio insertado"});
-  }catch (e){
+    res.status(201).json({ message: "Socio insertado" });
+  } catch (e) {
     // error no controlat
-    console.log("Error inesperado");
-  }
+    if (connection) {
+      await connection.rollback();
+    }
+    console.error(e);
+    res
+      .status(e.status || 500)
+      .json({ message: e.message || "Error interno del servidor" });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
 });
 
 app.post("/administrador", async (req, res) => {
-  try{
+  let connection;
+  try {
+    connection = await con.getConnection();
     const { nombre, dni, cargo } = req.body;
     // comprobem si algun camp demanat esta buit
-    if(!nombre || !dni || !cargo){
+    if (!nombre || !dni || !cargo) {
       const error = new Error("Faltan datos");
       error.status = 400;
       throw error;
     }
-    const [insertPersona] = await con.query(
+
+    await connection.beginTransaction();
+
+    const [insertPersona] = await connection.query(
       "insert into personas (nombre, dni, tipo) values (? ,? ,'administrador')",
       [nombre, dni]
     );
@@ -244,150 +270,223 @@ app.post("/administrador", async (req, res) => {
     const nuevoId = insertPersona.insertId;
 
     // si no sa ha afectat ninguna fila tira error
-    if(insertPersona.affectedRows === 0 || !nuevoId){
+    if (insertPersona.affectedRows === 0 || !nuevoId) {
       const error = new Error("No es posible insertar la persona");
-      error.status(500);
+      error.status = 500;
       throw error;
     }
 
-    const [insertAdmin] = await con.query(
-      "insert into administradores (id_persona, cargo) values (?, ?)",[nuevoId, cargo]
+    const [insertAdmin] = await connection.query(
+      "insert into administradores (id_persona, cargo) values (?, ?)",
+      [nuevoId, cargo]
     );
 
-    if(insertAdmin.affectedRows === 0 ){
-      const error = new Error("No es posible insertar en la tabla administradores pero en Persona si");
-      error.status(500);
+    if (insertAdmin.affectedRows === 0) {
+      const error = new Error(
+        "No es posible insertar en la tabla administradores pero en Persona si"
+      );
+      error.status = 500;
       throw error;
     }
+
+    await connection.commit();
     // insert fet
-    res.status(201).json({message: "Administrador insertado"});
-  }catch (e){
-    // error no controlat
-    console.log("Error inesperado");
-  }
+    res.status(201).json({ message: "Administrador insertado" });
+  } catch (e) {
+    if (connection) {
+      await connection.rollback();
+    }
+    console.error(e);
+    res
+      .status(e.status || 500)
+      .json({ message: e.message || "Error interno del servidor" });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
 });
 
 app.post("/libro", async (req, res) => {
-  try{
+  let connection;
+
+  try {
+    //obtenemos una conexión del pool
+    connection = await con.getConnection();
+
     const { titulo, disponibles, autor } = req.body;
     // comprobem si algun camp demanat esta buit
-    if(!titulo || !disponibles || !autor){
+    if (!titulo || !disponibles || !autor) {
       const error = new Error("Faltan datos");
       error.status = 400;
       throw error;
     }
-    const [insert] = await con.query(
-      "insert into recursos (titulo, disponibles, tipo) values (? ,? ,1)",
+    //Iniciamos la transacción en esa conexion
+    await connection.beginTransaction();
+
+    //PRIMER INSERT (usando 'connection')
+    const [insert] = await connection.query(
+      "insert into recursos (titulo, disponibles, id_tipo) values (? ,? ,1)",
       [titulo, disponibles]
     );
 
     const nuevoId = insert.insertId;
 
     // si no sa ha afectat ninguna fila tira error
-    if(insert.affectedRows === 0 || !nuevoId){
-      const error = new Error("No es posible insertar la persona");
-      error.status(500);
+    if (insert.affectedRows === 0 || !nuevoId) {
+      const error = new Error("No es posible insertar el recurso (fase 1)");
+      error.status = 500;
       throw error;
     }
 
-    const [insertLibros] = await con.query(
-      "insert into libros (id_libro, autor) values (?, ?)",[nuevoId, autor]
+    const [insertLibros] = await connection.query(
+      "insert into libros (id_libro, autor) values (?, ?)",
+      [nuevoId, autor]
     );
 
-    if(insertLibros.affectedRows === 0 || !nuevoId){
-      const error = new Error("No es posible insertar la persona");
-      error.status(500);
+    if (insertLibros.affectedRows === 0) {
+      const error = new Error(
+        "No es posible insertar los detalles del libro (fase 2)"
+      );
+      error.status = 500;
       throw error;
     }
 
+    //Si todo funciona bien, hacemos commit
+    await connection.commit();
+
     // insert fet
-    res.status(201).json({message: "Persona insertada"});
-  }catch (e){
-    // error no controlat
-    console.log("Error inesperado");
-  }
+    res.status(201).json({ message: "Libro insertado" });
+  } catch (e) {
+    console.error(e);
+    if (connection) {
+      console.log("Haciendo rollback de la transacción...");
+      await connection.rollback();
+    }
+    res
+      .status(e.status || 500)
+      .json({ message: e.message || "Error interno del servidor" });
+  } finally {
+    //Siempre liberamos la cionexion al final
+    if (connection) {
+      connection.release();
+    }
+  }
 });
 
 app.post("/revista", async (req, res) => {
-  try{
+  let connection;
+  try {
+    connection = await con.getConnection();
     const { titulo, disponibles, fecha } = req.body;
     // comprobem si algun camp demanat esta buit
-    if(!titulo || !disponibles || !fecha){
+    if (!titulo || !disponibles || !fecha) {
       const error = new Error("Faltan datos");
       error.status = 400;
       throw error;
     }
-    const [insert] = await con.query(
-      "insert into recursos (titulo, disponibles, tipo) values (? ,? ,2)",
+
+    await connection.beginTransaction();
+
+    const [insert] = await connection.query(
+      "insert into recursos (titulo, disponibles, id_tipo) values (? ,? ,2)",
       [titulo, disponibles]
     );
 
     const nuevoId = insert.insertId;
 
     // si no sa ha afectat ninguna fila tira error
-    if(insert.affectedRows === 0 || !nuevoId){
-      const error = new Error("No es posible insertar la persona");
-      error.status(500);
+    if (insert.affectedRows === 0 || !nuevoId) {
+      const error = new Error("No es posible insertar el recurso");
+      error.status = 500;
       throw error;
     }
 
-    const [insertRevista] = await con.query(
-      "insert into revistas (id_revista, fecha_publicacion) values (?, ?)",[nuevoId, fecha]
+    const [insertRevista] = await connection.query(
+      "insert into revistas (id_revista, fecha_publicacion) values (?, ?)",
+      [nuevoId, fecha]
     );
 
-    if(insertRevista.affectedRows === 0 || !nuevoId){
-      const error = new Error("No es posible insertar la persona");
-      error.status(500);
+    if (insertRevista.affectedRows === 0) {
+      const error = new Error("No es posible insertar los detalles de la revista");
+      error.status = 500;
       throw error;
     }
 
+    await connection.commit();
     // insert fet
-    res.status(201).json({message: "Persona insertada"});
-  }catch (e){
-    // error no controlat
-    console.log("Error inesperado");
-  }
+    res.status(201).json({ message: "Revista insertada" });
+  } catch (e) {
+    if (connection) {
+      await connection.rollback();
+    }
+    console.error(e);
+    res
+      .status(e.status || 500)
+      .json({ message: e.message || "Error interno del servidor" });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
 });
 
-app.post("/libro", async (req, res) => {
-  try{
+app.post("/pelicula", async (req, res) => {
+  let connection;
+  try {
+    connection = await con.getConnection();
     const { titulo, disponibles, genero, director } = req.body;
     // comprobem si algun camp demanat esta buit
-    if(!titulo || !disponibles || !genero || !director){
+    if (!titulo || !disponibles || !genero || !director) {
       const error = new Error("Faltan datos");
       error.status = 400;
       throw error;
     }
-    const [insert] = await con.query(
-      "insert into recursos (titulo, disponibles, tipo) values (? ,? ,1)",
+
+    await connection.beginTransaction();
+
+    const [insert] = await connection.query(
+      // He cambiado el id_tipo a 3 (asumiendo 1=libro, 2=revista)
+      "insert into recursos (titulo, disponibles, id_tipo) values (? ,? ,3)",
       [titulo, disponibles]
     );
 
     const nuevoId = insert.insertId;
 
     // si no sa ha afectat ninguna fila tira error
-    if(insert.affectedRows === 0 || !nuevoId){
-      const error = new Error("No es posible insertar la persona");
-      error.status(500);
+    if (insert.affectedRows === 0 || !nuevoId) {
+      const error = new Error("No es posible insertar el recurso");
+      error.status = 500;
       throw error;
     }
 
-    const [insertPelicula] = await con.query(
-      "insert into peliculas (id_pelicula, director, genero) values (?, ?, ?)",[nuevoId, director, genero]
+    const [insertPelicula] = await connection.query(
+      "insert into peliculas (id_pelicula, director, genero) values (?, ?, ?)",
+      [nuevoId, director, genero]
     );
 
-    if(insertPelicula.affectedRows === 0 || !nuevoId){
-      const error = new Error("No es posible insertar la persona");
-      error.status(500);
+    if (insertPelicula.affectedRows === 0) {
+      const error = new Error("No es posible insertar los detalles de la pelicula");
+      error.status = 500;
       throw error;
     }
 
+    await connection.commit();
     // insert fet
-    res.status(201).json({message: "Persona insertada"});
-  }catch (e){
-    // error no controlat
-    console.log("Error inesperado");
-  }
+    res.status(201).json({ message: "Pelicula insertada" });
+  } catch (e) {
+    if (connection) {
+      await connection.rollback();
+    }
+    console.error(e);
+    res
+      .status(e.status || 500)
+      .json({ message: e.message || "Error interno del servidor" });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
 });
 
 (async () => {

@@ -7,7 +7,7 @@ create database if not EXISTS Biblioteca;
 
 use Biblioteca;
 
-select * from tipo_recurso;
+
 
 create table tipo_recurso(
     id_tipo int AUTO_INCREMENT PRIMARY KEY,
@@ -153,3 +153,5 @@ INSERT INTO prestamos (id_persona, id_recurso, fecha_prestamo, fecha_devolucion)
 (2, 6, '2025-10-05', '2025-10-12');
 
 select * from prestamos;
+
+select * from personas
