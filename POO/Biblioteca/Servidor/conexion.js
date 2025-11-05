@@ -1,10 +1,11 @@
 import mysql from 'mysql2/promise';
 
 export const pool = mysql.createPool({
-  host: 'localhost',
-  user: 'alumno',
-  password: 'alumno',
-  database: 'Biblioteca',
+  host: process.env.DB_HOST,     // Esto valdrá 'db'
+  user: process.env.DB_USER,     // Esto valdrá 'alumno'
+  password: process.env.DB_PASSWORD, // Esto valdrá 'alumno'
+  database: process.env.DB_NAME,   // Esto valdrá 'Biblioteca'
+  port: 3306,
 });
 
 export async function verifyConnection() {

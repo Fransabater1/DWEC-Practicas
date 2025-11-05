@@ -1,0 +1,8 @@
+# Ignorar el archivo de variables de entorno
+.env
+
+# Ignorar la carpeta de dependencias de Node
+/servidor/node_modules
+
+# Ignorar carpetas de VSCode
+.vscode/

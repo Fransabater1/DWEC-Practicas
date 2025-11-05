@@ -1,0 +1,46 @@
+name: Biblioteca-contenedor
+services:
+  # Servicio 1: Base de Datos (MySQL)
+  db:
+    build:
+      context: ./BD  # Le dice a Compose que busque en la carpeta ./BD
+      dockerfile: dockerfile # Le dice que use el archivo "dockerfile" (minúscula)
+    restart: unless-stopped
+    environment:
+      # Carga las variables desde el archivo .env (que está en la raíz)
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+
+  # Servicio 2: Aplicación (Node.js)
+  app:
+    build:
+      context: ./servidor # Le dice a Compose que busque en la carpeta ./servidor
+      dockerfile: Dockerfile # Le dice que use el archivo "Dockerfile" (mayúscula)
+    restart: unless-stopped
+    ports:
+      # Expone el puerto de la app (definido en .env)
+      - "${APP_PORT}:${APP_PORT}"
+    volumes:
+      # Sincroniza tu código local de ./servidor con /usr/src/app dentro del contenedor
+      - ./servidor:/usr/src/app
+      # Evita que la carpeta node_modules local sobreescriba la del contenedor
+      - /usr/src/app/node_modules
+    environment:
+      # Pasa las variables del .env que tu app necesita (conexion.js)
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      APP_PORT: ${APP_PORT}
+    depends_on:
+      - db # Le dice a Compose que inicie la BD antes que la app
+
+# Definición del volumen para persistir datos
+volumes:
+  db-data:

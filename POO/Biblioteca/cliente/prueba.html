@@ -1,14 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
-</head>
-<body>
-    <form action="" method="post">
-        label*
+  </head>
+  <body>
+    <h2>Formulario de registro</h2>  
+    <form id="registroP" action="/socio">
+      <label for="dni">DNI:</label>
+      <input type="text" name="dni" id="dni" required /><br /><br />
 
+      <label for="nom">Nombre:</label>
+      <input type="text" name="nombre" id="nom" required /><br /><br />
+
+      <label for="tipo">Tipo:</label>
+      <select name="tipo" id="tipo" onchange="vista()">
+        <option value="socio">Socio</option>
+        <option value="administrador">Administrador</option>
+      </select>
+      <br />
+      <div id="Admin" hidden>
+        <fieldset>
+          <input type="radio" name="cargo" id="maestro" value="maestro" />
+          <label for="maestro">Maestro</label>
+          <br />
+          <input type="radio" name="cargo" id="ayudante" value="ayudante" />
+          <label for="ayudante">Ayudante</label>
+
+          </fieldset>
+      </div>
+      <br />
+      <button type="submit">Registrar</button>
     </form>
-</body>
+    <script src="personas.js"></script>
+  </body>
 </html>

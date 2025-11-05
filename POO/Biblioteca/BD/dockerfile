@@ -1,6 +1,5 @@
 FROM mysql/mysql-server:latest
-ENV MYSQL_ROOT_PASSWORD=alumno
-ENV MYSQL_DATABASE=Biblioteca
-ENV MYSQL_USER=alumno
-ENV MYSQL_PASSWORD=alumno
+
+# Copia el base.sql (que está en la misma carpeta, ./BD)
+# a la carpeta de inicialización del contenedor.
 COPY base.sql /docker-entrypoint-initdb.d/
