@@ -1,24 +1,42 @@
 import express from "express";
-import { con, verifyConnection } from "./conexion.js";
+import { con, verifyConnection } from "../servidor/conexion.js";
 
 const app = express();
 const PORT = process.env.APP_PORT || 3000
 
+async function obtenerTodosLosRecursos(){
+  const [rows] = await con.query("select * from recursos");
+  return rows;
+}
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.get("/libros", async (req, res) => {
+const manejadorDeErrores = (err, req, res, next) => {
+  console.error("⛔ ERROR DETECTADO:", err.message);
+  const statusCode = err.status || 500;
+  // Si el error tiene un mensaje, lo usamos.
+  // Si no, ponemos un mensaje genérico.
+  const message = err.message || "Error interno del servidor";
+  // Enviamos la respuesta JSON centralizada
+  res.status(statusCode).json({
+    message: message
+  });
+};
+
+app.get("/libros", async (req, res, next) => {
   try {
     const [rows] = await con.query(
       "SELECT r.id_recurso, r.titulo, r.disponibles, l.autor FROM recursos r JOIN libros l ON r.id_recurso = l.id_libro"
     );
     res.json(rows);
+
   } catch (error) {
-    res.status(500).json({ message: "Error interno del servidor" });
+    next(error);
   }
 });
 
-app.get("/libros/:id", async (req, res) => {
+app.get("/libros/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
     const [rows] = await con.query(
@@ -30,11 +48,11 @@ app.get("/libros/:id", async (req, res) => {
     }
     res.json(rows[0]);
   } catch (error) {
-    res.status(500).json({ message: "Error interno del servidor" });
+    next(error);
   }
 });
 
-app.get("/peliculas", async (req, res) => {
+app.get("/peliculas", async (req, res, next) => {
   try {
     const [rows] = await con.query(`
       SELECT r.id_recurso, r.titulo, r.disponibles, p.director, p.genero
@@ -42,11 +60,11 @@ app.get("/peliculas", async (req, res) => {
         JOIN peliculas p ON r.id_recurso = p.id_pelicula`);
     res.json(rows);
   } catch (error) {
-    res.status(500).json({ message: "Error interno del servidor" });
+    next(error);
   }
 });
 
-app.get("/peliculas/:id", async (req, res) => {
+app.get("/peliculas/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
     const [rows] = await con.query(
@@ -61,11 +79,11 @@ app.get("/peliculas/:id", async (req, res) => {
     }
     res.json(rows[0]);
   } catch (error) {
-    res.status(500).json({ message: "Error interno del servidor" });
+    next(error);
   }
 });
 
-app.get("/revistas", async (req, res) => {
+app.get("/revistas", async (req, res, next) => {
   try {
     const [rows] = await con.query(`
     SELECT r.id_recurso, r.titulo, r.disponibles, re.fecha_publicacion
@@ -73,11 +91,11 @@ app.get("/revistas", async (req, res) => {
     JOIN revistas re ON r.id_recurso = re.id_revista`);
     res.json(rows);
   } catch (error) {
-    res.status(500).json({ message: "Error interno del servidor" });
+    next(error);
   }
 });
 
-app.get("/revistas/:id", async (req, res) => {
+app.get("/revistas/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
     const [rows] = await con.query(
@@ -92,22 +110,20 @@ app.get("/revistas/:id", async (req, res) => {
     }
     res.json(rows[0]);
   } catch (error) {
-    res.status(500).json({ message: "Error interno del servidor" });
+    next(error);
   }
 });
-
-app.get("/recursos", async (req, res) => {
+ 
+app.get("/recursos", async (req, res, next) => {
   try {
-    const [rows] = await con.query(`
-    select * from recursos`
-    );
+    const rows = await obtenerTodosLosRecursos();
     res.json(rows);
   } catch (error) {
-    res.status(500).json({ message: "Error interno del servidor" });
+    next(error);
   }
 });
 
-app.get("/socios", async (req, res) => {
+app.get("/socios", async (req, res, next) => {
   try {
     const [rows] = await con.query(`
     SELECT p.id_persona, p.nombre, p.dni
@@ -115,11 +131,11 @@ app.get("/socios", async (req, res) => {
     JOIN socios s ON s.id_persona = p.id_persona`);
     res.json(rows);
   } catch (error) {
-    res.status(500).json({ message: "Error interno del servidor" });
+    next(error);
   }
 });
 
-app.get("/administradores", async (req, res) => {
+app.get("/administradores", async (req, res, next) => {
   try {
     const [rows] = await con.query(`
     SELECT p.id_persona, p.nombre, p.dni, a.cargo
@@ -127,11 +143,11 @@ app.get("/administradores", async (req, res) => {
     JOIN administradores a ON a.id_persona = p.id_persona`);
     res.json(rows);
   } catch (error) {
-    res.status(500).json({ message: "Error interno del servidor" });
+    next(error);
   }
 });
 
-app.get("/administradores/:id", async (req, res) => {
+app.get("/administradores/:id", async (req, res, next) => {
   try {
   const {id} = req.params;
   const [rows] = await con.query(`
@@ -143,12 +159,12 @@ app.get("/administradores/:id", async (req, res) => {
     }
     res.json(rows[0]);
   } catch (error) {
-    res.status(500).json({ message: "Error interno del servidor" });
+    next(error);
   }
 });
   
 
-app.get("/socios/:id", async (req, res) => {
+app.get("/socios/:id", async (req, res, next) => {
   try {
     const {id} = req.params;
   const [rows] = await con.query(`
@@ -160,21 +176,20 @@ app.get("/socios/:id", async (req, res) => {
     }
     res.json(rows[0]);
   } catch (error) {
-    res.status(500).json({ message: "Error interno del servidor" });
+    next(error);
   }
 });
-
-app.get("/personas", async (req, res) => {
+ 
+app.get("/personas", async (req, res, next) => {
   try {
     const [rows] = await con.query(`
     select * from personas`);
     res.json(rows);
   } catch (error) {
-    res.status(500).json({ message: "Error interno del servidor" });
+    next(error);
   }
 });
-
-app.get("/prestamos/:id/:socio/:recurso", async (req, res) => {
+app.get("/prestamos/:id/:socio/:recurso", async (req, res, next) => {
   try{
     const {id, socio, recurso} = req.params;
     const [rows] = await con.query(`select * from prestamos where id_prestamo = ? and id_persona = ? and id_recurso = ?`, 
@@ -183,12 +198,16 @@ app.get("/prestamos/:id/:socio/:recurso", async (req, res) => {
       return res.status(404).json({ message: "prestamo no encontrado"});
     }
     res.json(rows[0]);
-  }catch{
-    res.status(500).json({ message: "Error interno del servidor" });
+  } catch (error) {
+    next(error);
   }
 });
 
-app.post("/socio", async (req, res) => {
+const verificarNombre = async(req, res, next) => {
+  const recursos = await obtenerTodosLosRecursos();
+}
+
+app.post("/socio", verificarNombre, async (req, res, next) => {
   let connection;
   try {
     connection = await con.getConnection();
@@ -238,9 +257,7 @@ app.post("/socio", async (req, res) => {
       await connection.rollback();
     }
     console.error(e);
-    res
-      .status(e.status || 500)
-      .json({ message: e.message || "Error interno del servidor" });
+    next(e);
   } finally {
     if (connection) {
       connection.release();
@@ -248,7 +265,7 @@ app.post("/socio", async (req, res) => {
   }
 });
 
-app.post("/administrador", async (req, res) => {
+app.post("/administrador", async (req, res, next) => {
   let connection;
   try {
     connection = await con.getConnection();
@@ -297,9 +314,7 @@ app.post("/administrador", async (req, res) => {
       await connection.rollback();
     }
     console.error(e);
-    res
-      .status(e.status || 500)
-      .json({ message: e.message || "Error interno del servidor" });
+    next(e);
   } finally {
     if (connection) {
       connection.release();
@@ -307,7 +322,7 @@ app.post("/administrador", async (req, res) => {
   }
 });
 
-app.post("/libro", async (req, res) => {
+app.post("/libro", async (req, res, next) => {
   let connection;
 
   try {
@@ -363,9 +378,7 @@ app.post("/libro", async (req, res) => {
       console.log("Haciendo rollback de la transacción...");
       await connection.rollback();
     }
-    res
-      .status(e.status || 500)
-      .json({ message: e.message || "Error interno del servidor" });
+    next(e);
   } finally {
     //Siempre liberamos la cionexion al final
     if (connection) {
@@ -374,7 +387,7 @@ app.post("/libro", async (req, res) => {
   }
 });
 
-app.post("/revista", async (req, res) => {
+app.post("/revista", async (req, res, next) => {
   let connection;
   try {
     connection = await con.getConnection();
@@ -421,9 +434,7 @@ app.post("/revista", async (req, res) => {
       await connection.rollback();
     }
     console.error(e);
-    res
-      .status(e.status || 500)
-      .json({ message: e.message || "Error interno del servidor" });
+    next(e);
   } finally {
     if (connection) {
       connection.release();
@@ -431,7 +442,7 @@ app.post("/revista", async (req, res) => {
   }
 });
 
-app.post("/pelicula", async (req, res) => {
+app.post("/pelicula", async (req, res, next) => {
   let connection;
   try {
     connection = await con.getConnection();
@@ -479,15 +490,79 @@ app.post("/pelicula", async (req, res) => {
       await connection.rollback();
     }
     console.error(e);
-    res
-      .status(e.status || 500)
-      .json({ message: e.message || "Error interno del servidor" });
+    next(e);
   } finally {
     if (connection) {
       connection.release();
     }
   }
 });
+
+app.put("/libros/:id", async (req, res, next) => {
+  let connection;
+
+  try {
+    //obtenemos una conexión del pool
+    connection = await con.getConnection();
+
+    const {id} = req.params;
+    const { titulo, disponibles, autor } = req.body;
+    // comprobem si algun camp demanat esta buit
+    if (!titulo || disponibles === undefined || !autor) {
+      const error = new Error("Faltan datos");
+      error.status = 400;
+      throw error;
+    }
+    //Iniciamos la transacción en esa conexion
+    await connection.beginTransaction();
+
+    //PRIMER update en recursos (usando 'connection')
+    const [updateRecurso] = await connection.query(
+      "UPDATE recursos SET titulo = ?, disponibles = ? WHERE id_recurso = ?",
+      [titulo, disponibles, id]
+    );
+
+    // si no sa ha afectat ninguna fila tira error
+    if (updateRecurso.affectedRows === 0) {
+      const error = new Error("No es posible insertar el recurso (fase 1)");
+      error.status = 500;
+      throw error;
+    }
+
+    const [updateLibro] = await connection.query(
+      "update libros set autor = ? where id_libro =?",
+      [autor, id]
+    );
+
+    if (updateLibro.affectedRows === 0) {
+      const error = new Error(
+        "No es posible actualizar los detalles del libro (fase 2)"
+      );
+      error.status = 500;
+      throw error;
+    }
+
+    //Si todo funciona bien, hacemos commit
+    await connection.commit();
+
+    // insert fet
+    res.status(201).json({ message: "Libro actualiazdo" });
+  } catch (e) {
+    console.error(e);
+    if (connection) {
+      console.log("Haciendo rollback de la transacción...");
+      await connection.rollback();
+    }
+    next(e);
+  } finally {
+    //Siempre liberamos la cionexion al final
+    if (connection) {
+      connection.release();
+    }
+  }
+});
+
+app.use(manejadorDeErrores);
 
 (async () => {
   try {
