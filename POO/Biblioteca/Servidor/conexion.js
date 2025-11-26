@@ -6,7 +6,7 @@ export const pool = mysql.createPool({
   password: process.env.DB_PASSWORD, // Esto valdrá 'alumno'
   database: process.env.DB_NAME,   // Esto valdrá 'Biblioteca'
   port: 3306,
-});
+}); 
 
 export async function verifyConnection() {
   try {

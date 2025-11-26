@@ -1,8 +1,8 @@
 import express from "express";
-import { con, verifyConnection } from "../servidor/conexion.js";
+import { con, verifyConnection } from "./conexion.js";
 
 const app = express();
-const PORT = process.env.APP_PORT || 3000
+const PORT = process.env.APP_PORT
 
 async function obtenerTodosLosRecursos(){
   const [rows] = await con.query("select * from recursos");
@@ -13,7 +13,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const manejadorDeErrores = (err, req, res, next) => {
-  console.error("⛔ ERROR DETECTADO:", err.message);
+  console.error(" ERROR DETECTADO:", err.message);
   const statusCode = err.status || 500;
   // Si el error tiene un mensaje, lo usamos.
   // Si no, ponemos un mensaje genérico.
