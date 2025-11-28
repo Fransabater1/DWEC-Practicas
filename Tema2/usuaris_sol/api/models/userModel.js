@@ -1,7 +1,7 @@
 import connection from '../config/db.js';
 
 // GET
-export async function getAllUsersQuery() {
+export async function getUser() {
     const [results] = await connection.query(
         'SELECT name, role FROM users'
     );
@@ -9,7 +9,7 @@ export async function getAllUsersQuery() {
 }
 
 // LOGIN
-export async function getUserByNameQuery(name) {
+export async function getUserName(name) {
     const [login] = await connection.query(
         "select role, password from users where name = ?", [name]
     );
@@ -17,7 +17,7 @@ export async function getUserByNameQuery(name) {
 }
 
 // POST
-export async function insertUserQuery(name, hashedPassword, role) {
+export async function insertUser(name, hashedPassword, role) {
     const [results] = await connection.query(
         'INSERT INTO users(name, password, role) VALUES(?, ?, ?)',
         [name, hashedPassword, role]

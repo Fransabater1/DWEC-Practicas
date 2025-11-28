@@ -1,14 +1,14 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-import { getAllUsersQuery, getUserByNameQuery, insertUserQuery } from '../models/userModel.js';
+import { getUser, getUserName, insertUser } from '../models/userModel.js';
 
 const secretKey = process.env.JWT_SECRET;
 
 
-export async function getUsers(req, res) {
+export async function getUsuarios(req, res) {
     try {
-        const results = await getAllUsersQuery();
+        const results = await getUser();
         res.status(200).json(results);
     } catch (err) {
         console.error(err.stack);
@@ -21,19 +21,19 @@ export async function login(req, res) {
     try {
         const {name, password} = req.body;
         if (!name || !password) {
-            return res.status(400).json({ message: "Username and password are required" });
+            return res.status(400).json({ message: "Usuario y contraseña requeridos" });
         }
         
         // Usamos la función del modelo
-        const loginData = await getUserByNameQuery(name);
+        const login = await getUserName(name);
         
         // Si no existe el usuario
-        if (loginData.length === 0) {
-             return res.status(401).json({ message: "Authentication failed" });
+        if (login.length === 0) {
+             return res.status(401).json({ message: "Autenticación fallida" });
         }
 
-        const role = loginData[0].role;
-        const passwordMatched = await bcrypt.compare(password, loginData[0].password);
+        const role = login[0].role;
+        const passwordMatched = await bcrypt.compare(password, login[0].password);
 
         if(passwordMatched){
             const token = jwt.sign({ name, role }, secretKey, { expiresIn: "1h" });
@@ -53,7 +53,7 @@ export async function login(req, res) {
 }
 
 
-export async function register(req, res) {
+export async function registrar(req, res) {
     try {
         // Recogemos los datos. Si no envían rol, asignamos 'user' por defecto.
         let { name, password, role = 'user' } = req.body;
@@ -68,7 +68,7 @@ export async function register(req, res) {
         const salt = await bcrypt.genSalt();
         const hashedPassword = await bcrypt.hash(password, salt);
         
-        const results = await insertUserQuery(name, hashedPassword, role);
+        const results = await insertUser(name, hashedPassword, role);
         
         res.status(200).json(results);
 

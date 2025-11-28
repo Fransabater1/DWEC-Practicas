@@ -5224,14 +5224,14 @@ select * from users;
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 // Importamos nuestras funciones SQL básicas
-import { getAllUsersQuery, getUserByNameQuery, insertUserQuery } from '../models/users.model.js';
+import { getUser, getUserName, insertUser } from '../models/users.model.js';
 
 const secretKey = process.env.JWT_SECRET;
 
 // Lógica del GET /api/users
-export async function getUsers(req, res) {
+export async function getUsuarios(req, res) {
     try {
-        const results = await getAllUsersQuery();
+        const results = await getUser();
         res.status(200).json(results);
     } catch (err) {
         console.error(err.stack);
@@ -5248,7 +5248,7 @@ export async function login(req, res) {
         }
         
         // Usamos la función del modelo
-        const loginData = await getUserByNameQuery(name);
+        const loginData = await getUserName(name);
         
         // Si no existe el usuario
         if (loginData.length === 0) {
@@ -5276,14 +5276,14 @@ export async function login(req, res) {
 }
 
 // Lógica del POST /api/users
-export async function register(req, res) {
+export async function registrar(req, res) {
     try {
         let { name, password, role = 'user' } = req.body;
         const salt = await bcrypt.genSalt();
         const hashedPassword = await bcrypt.hash(password, salt);
         
         // Usamos la función del modelo
-        const results = await insertUserQuery(name, hashedPassword, role);
+        const results = await insertUser(name, hashedPassword, role);
         
         res.status(200).json(results);
     } catch (err) {
@@ -5333,7 +5333,7 @@ export async function requireAdmin(req, res, next) {
 import connection from '../db.js';
 
 // GET
-export async function getAllUsersQuery() {
+export async function getUser() {
     const [results] = await connection.query(
         'SELECT name, role FROM users'
     );
@@ -5341,7 +5341,7 @@ export async function getAllUsersQuery() {
 }
 
 // LOGIN
-export async function getUserByNameQuery(name) {
+export async function getUserName(name) {
     const [login] = await connection.query(
         "select role, password from users where name = ?", [name]
     );
@@ -5349,7 +5349,7 @@ export async function getUserByNameQuery(name) {
 }
 
 // POST
-export async function insertUserQuery(name, hashedPassword, role) {
+export async function insertUser(name, hashedPassword, role) {
     const [results] = await connection.query(
         'INSERT INTO users(name, password, role) VALUES(?, ?, ?)',
         [name, hashedPassword, role]
@@ -5363,7 +5363,7 @@ export async function insertUserQuery(name, hashedPassword, role) {
 ```
 import express from 'express';
 // Importamos las funciones del controlador
-import { getUsers, login, register } from './controllers/userControllers.js';
+import { getUsuarios, login, registrar } from './controllers/userControllers.js';
 // Importamos los middlewares
 import { verifyToken, requireAdmin } from './middlewares/authMiddleware.js';
 
@@ -5371,8 +5371,8 @@ const router = express.Router();
 const endpoint = '/api/users'; // Tu variable original
 
 // Definimos las rutas tal cual las tenías
-router.get(endpoint, verifyToken, requireAdmin, getUsers);
-router.post(endpoint, register);
+router.get(endpoint, verifyToken, requireAdmin, getUsuarios);
+router.post(endpoint, registrar);
 router.post('/login', login);
 
 export default router;

@@ -21,7 +21,7 @@ export async function requireAdmin(req, res, next) {
         if (req.role === 'admin') {
             next();
         } else {
-            res.status(403).send('No tens permisso');
+            res.status(403).send('No tienes permisos');
         }
     } catch (err) {
         res.status(500).send(`Error: ${err}`);
