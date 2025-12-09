@@ -1,4 +1,3 @@
--- Active: 1758706278649@@127.0.0.1@3306@products
 import mysql from 'mysql2/promise';
 
 import 'dotenv/config';
