@@ -22,8 +22,8 @@ CREATE TABLE IF NOT EXISTS product_details (
 
 -- 4. Datos de prueba
 INSERT INTO product (color, image, quantity, brand, product) VALUES 
-('green', 'socks_green.jpeg', 50, 'Vue Mastery', 'Socks'),
-('blue', 'socks_blue.jpeg', 0, 'Vue Mastery', 'Socks');
+('green', 'images/socks_green.jpeg', 50, 'Vue Mastery', 'Socks'),
+('blue', 'images/socks_blue.jpeg', 0, 'Vue Mastery', 'Socks');
 
 INSERT INTO product_details (id_product, detail) VALUES 
 (1, '50% cotton'),
