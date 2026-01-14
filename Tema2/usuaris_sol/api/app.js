@@ -1,7 +1,7 @@
 import 'dotenv/config'; // Carga el .env lo primero
 import express from 'express';
 import cookieParser from 'cookie-parser';
-import router from './routes/userRoutes.js'; // Traemos las rutas
+import router from './routes/productRouter.js'; // Traemos las rutas
 
 const app = express();
 // Cogemos el puerto del .env o usamos el 3000

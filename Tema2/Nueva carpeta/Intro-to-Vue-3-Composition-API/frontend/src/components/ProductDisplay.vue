@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import axios from 'axios'
 import ReviewForm from '@/components/ReviewForm.vue'
 import ReviewList from '@/components/ReviewList.vue'
 
@@ -28,17 +29,16 @@ const reviews = ref([])
 // La clave (izquierda) debe coincidir EXACTAMENTE con lo que viene en tu JSON
 
 
-// 3. Petición al Backend (Fetch)
+// 3. Petición al Backend (Axios)
 onMounted(async () => {
   try {
-    const respuesta = await fetch('http://localhost:3000/products')
-    const datos = await respuesta.json()
+    const { data } = await axios.get('http://localhost:3000/products')
 
     // Asignamos los detalles directos
-    details.value = datos.details
+    details.value = data.details
 
     // Procesamos las variantes para arreglar la imagen
-    variants.value = datos.variants;
+    variants.value = data.variants;
 
     console.log("Datos cargados correctamente:", variants.value)
   } catch (error) {

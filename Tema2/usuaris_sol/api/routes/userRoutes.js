@@ -1,17 +1,17 @@
-import express from 'express';
-// Asegúrate de que la ruta de importación sea correcta (saliendo de routes y entrando a controllers)
-import { getUsuarios, login, registrar } from '../controllers/userController.js';
-import { verifyToken, requireAdmin } from '../middlewares/authMiddleware.js';
+// import express from 'express';
 
-const router = express.Router();
-const endpoint = '/api/users';
+// import { getUsuarios, login, registrar } from '../controllers/userController.js';
+// import { verifyToken, requireAdmin } from '../middlewares/authMiddleware.js';
 
-// Rutas
-router.get(endpoint, verifyToken, requireAdmin, getUsuarios);
+// const router = express.Router();
+// const endpoint = '/api/users';
 
-// AHORA PROTEGEMOS ESTA RUTA: Necesitamos saber quién es el que lo añade
-router.post(endpoint, verifyToken, registrar); 
+// router.get(endpoint, verifyToken, requireAdmin, getUsuarios);
 
-router.post('/login', login);
+// router.post(endpoint, verifyToken, registrar); 
 
-export default router;
+// router.post('/login', login);
+
+
+
+// export default router;

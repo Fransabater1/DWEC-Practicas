@@ -8,8 +8,7 @@ export function verifyToken(req, res, next) {
     }
     try {
         const payload = jwt.verify(token, secretKey);
-        req.role = payload.role;
-        req.name = payload.name;
+        req.correu = payload.correu;
         next();
     } catch (error) {
         return res.status(403).json({ message: "Token not valid" });
